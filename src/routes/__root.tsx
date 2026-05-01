@@ -33,10 +33,14 @@ export const Route = createRootRoute({
       { title: "VetAlert — Détection rapide des maladies animales" },
       { name: "description", content: "Système d'alerte intelligent pour signaler les symptômes du bétail et alerter automatiquement les vétérinaires les plus proches." },
       { name: "author", content: "VetAlert" },
-      { property: "og:title", content: "VetAlert — Alerte sanitaire animale" },
-      { property: "og:description", content: "Détection rapide des maladies animales et alerte vétérinaire automatique." },
+      { property: "og:title", content: "VetAlert — Détection rapide des maladies animales" },
+      { property: "og:description", content: "Système d'alerte intelligent pour signaler les symptômes du bétail et alerter automatiquement les vétérinaires les plus proches." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "VetAlert — Détection rapide des maladies animales" },
+      { name: "twitter:description", content: "Système d'alerte intelligent pour signaler les symptômes du bétail et alerter automatiquement les vétérinaires les plus proches." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/793e3d70-ccda-40a2-a657-688eb8d4fbda/id-preview-658f5cd7--82fe5747-17bb-4178-aa31-b8d35fbb8f23.lovable.app-1777671797008.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/793e3d70-ccda-40a2-a657-688eb8d4fbda/id-preview-658f5cd7--82fe5747-17bb-4178-aa31-b8d35fbb8f23.lovable.app-1777671797008.png" },
     ],
     links: [
       {
