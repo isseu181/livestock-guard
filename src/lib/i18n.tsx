@@ -1,0 +1,170 @@
+import { createContext, useContext, useState, ReactNode } from "react";
+
+type Lang = "fr" | "en";
+
+const dict = {
+  fr: {
+    appName: "VetAlert",
+    tagline: "Détection rapide des maladies animales",
+    heroTitle: "Protégez votre bétail. Alertez un vétérinaire en quelques secondes.",
+    heroDesc: "Signalez les symptômes de vos animaux et recevez une évaluation immédiate de gravité, avec mise en relation automatique avec le vétérinaire le plus proche.",
+    cta: "Signaler un cas",
+    learn: "Comment ça marche",
+    step1Title: "Décrivez l'animal",
+    step1Desc: "Type, âge, et symptômes observés.",
+    step2Title: "Analyse instantanée",
+    step2Desc: "Notre moteur évalue le niveau de gravité.",
+    step3Title: "Alerte vétérinaire",
+    step3Desc: "Le vétérinaire le plus proche est notifié.",
+    formTitle: "Nouveau signalement",
+    formDesc: "Renseignez les informations ci-dessous pour déclencher une analyse.",
+    animalType: "Type d'animal",
+    selectAnimal: "Choisir un animal",
+    cattle: "Bovin",
+    sheep: "Mouton",
+    goat: "Chèvre",
+    poultry: "Volaille",
+    horse: "Cheval",
+    age: "Âge approximatif",
+    location: "Localisation",
+    locationPh: "Village, région",
+    symptoms: "Symptômes observés",
+    notes: "Notes additionnelles",
+    notesPh: "Comportement, durée des symptômes...",
+    analyze: "Analyser et alerter",
+    severity: "Niveau de gravité",
+    critical: "Critique",
+    moderate: "Modéré",
+    low: "Faible",
+    recommendation: "Recommandation",
+    recCritical: "Intervention vétérinaire urgente requise. Isolez l'animal immédiatement.",
+    recModerate: "Surveillance rapprochée. Contactez un vétérinaire dans les 24h.",
+    recLow: "Surveillez l'évolution. Conseils de prévention recommandés.",
+    nearestVet: "Vétérinaire le plus proche",
+    notifying: "Notification envoyée",
+    callVet: "Appeler",
+    newReport: "Nouveau signalement",
+    selectSymptoms: "Sélectionnez tous les symptômes observés",
+    sym_fever: "Fièvre",
+    sym_appetite: "Perte d'appétit",
+    sym_weakness: "Faiblesse",
+    sym_diarrhea: "Diarrhée",
+    sym_cough: "Toux",
+    sym_breathing: "Difficulté respiratoire",
+    sym_skin: "Lésions cutanées",
+    sym_swelling: "Gonflement",
+    sym_bleeding: "Saignement",
+    sym_paralysis: "Paralysie",
+    sym_abortion: "Avortement",
+    sym_milk: "Baisse de production laitière",
+    statsTitle: "Un impact concret pour les zones rurales",
+    stat1: "Pertes de bétail réduites",
+    stat2: "Vétérinaires partenaires",
+    stat3: "Temps de réaction moyen",
+    footer: "Système d'alerte sanitaire animale",
+    backHome: "Accueil",
+    minutes: "min",
+  },
+  en: {
+    appName: "VetAlert",
+    tagline: "Rapid animal disease detection",
+    heroTitle: "Protect your livestock. Alert a vet in seconds.",
+    heroDesc: "Report your animals' symptoms and get an instant severity assessment, with automatic connection to the nearest veterinarian.",
+    cta: "Report a case",
+    learn: "How it works",
+    step1Title: "Describe the animal",
+    step1Desc: "Type, age, and observed symptoms.",
+    step2Title: "Instant analysis",
+    step2Desc: "Our engine assesses the severity level.",
+    step3Title: "Vet alert",
+    step3Desc: "The nearest vet is immediately notified.",
+    formTitle: "New report",
+    formDesc: "Fill in the details below to trigger an analysis.",
+    animalType: "Animal type",
+    selectAnimal: "Select an animal",
+    cattle: "Cattle",
+    sheep: "Sheep",
+    goat: "Goat",
+    poultry: "Poultry",
+    horse: "Horse",
+    age: "Approximate age",
+    location: "Location",
+    locationPh: "Village, region",
+    symptoms: "Observed symptoms",
+    notes: "Additional notes",
+    notesPh: "Behavior, symptom duration...",
+    analyze: "Analyze & alert",
+    severity: "Severity level",
+    critical: "Critical",
+    moderate: "Moderate",
+    low: "Low",
+    recommendation: "Recommendation",
+    recCritical: "Urgent vet intervention required. Isolate the animal immediately.",
+    recModerate: "Close monitoring. Contact a vet within 24h.",
+    recLow: "Monitor progress. Prevention tips recommended.",
+    nearestVet: "Nearest veterinarian",
+    notifying: "Notification sent",
+    callVet: "Call",
+    newReport: "New report",
+    selectSymptoms: "Select all observed symptoms",
+    sym_fever: "Fever",
+    sym_appetite: "Loss of appetite",
+    sym_weakness: "Weakness",
+    sym_diarrhea: "Diarrhea",
+    sym_cough: "Cough",
+    sym_breathing: "Breathing difficulty",
+    sym_skin: "Skin lesions",
+    sym_swelling: "Swelling",
+    sym_bleeding: "Bleeding",
+    sym_paralysis: "Paralysis",
+    sym_abortion: "Abortion",
+    sym_milk: "Drop in milk production",
+    statsTitle: "Real impact for rural areas",
+    stat1: "Livestock loss reduced",
+    stat2: "Partner veterinarians",
+    stat3: "Average response time",
+    footer: "Animal health alert system",
+    backHome: "Home",
+    minutes: "min",
+  },
+};
+
+type Key = keyof typeof dict.fr;
+
+const I18nCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: Key) => string }>({
+  lang: "fr",
+  setLang: () => {},
+  t: (k) => k,
+});
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [lang, setLang] = useState<Lang>("fr");
+  const t = (k: Key) => dict[lang][k] ?? k;
+  return <I18nCtx.Provider value={{ lang, setLang, t }}>{children}</I18nCtx.Provider>;
+}
+
+export const useI18n = () => useContext(I18nCtx);
+
+export const SYMPTOMS: { key: Key; critical: boolean; weight: number }[] = [
+  { key: "sym_fever", critical: false, weight: 2 },
+  { key: "sym_appetite", critical: false, weight: 1 },
+  { key: "sym_weakness", critical: false, weight: 2 },
+  { key: "sym_diarrhea", critical: false, weight: 2 },
+  { key: "sym_cough", critical: false, weight: 1 },
+  { key: "sym_breathing", critical: true, weight: 4 },
+  { key: "sym_skin", critical: false, weight: 1 },
+  { key: "sym_swelling", critical: false, weight: 2 },
+  { key: "sym_bleeding", critical: true, weight: 4 },
+  { key: "sym_paralysis", critical: true, weight: 5 },
+  { key: "sym_abortion", critical: true, weight: 4 },
+  { key: "sym_milk", critical: false, weight: 1 },
+];
+
+export function evaluateSeverity(selected: string[]): "critical" | "moderate" | "low" {
+  const items = SYMPTOMS.filter((s) => selected.includes(s.key));
+  const score = items.reduce((sum, s) => sum + s.weight, 0);
+  const hasCritical = items.some((s) => s.critical);
+  if (hasCritical || score >= 7) return "critical";
+  if (score >= 3) return "moderate";
+  return "low";
+}

@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { I18nProvider } from "@/lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -29,14 +30,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "VetAlert — Détection rapide des maladies animales" },
+      { name: "description", content: "Système d'alerte intelligent pour signaler les symptômes du bétail et alerter automatiquement les vétérinaires les plus proches." },
+      { name: "author", content: "VetAlert" },
+      { property: "og:title", content: "VetAlert — Alerte sanitaire animale" },
+      { property: "og:description", content: "Détection rapide des maladies animales et alerte vétérinaire automatique." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -65,5 +65,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <I18nProvider>
+      <Outlet />
+    </I18nProvider>
+  );
 }
