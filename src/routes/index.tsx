@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
-import { ArrowRight, Stethoscope, ClipboardList, BellRing, ShieldCheck, TrendingDown, Users, Clock } from "lucide-react";
+import { ArrowRight, Stethoscope, ClipboardList, BellRing, ShieldCheck, TrendingDown, Users, Clock, Globe2 } from "lucide-react";
 import heroImg from "@/assets/hero-vet.jpg";
 
 export const Route = createFileRoute("/")({
@@ -41,6 +41,14 @@ function Index() {
               <Button asChild size="lg" variant="outline">
                 <a href="#how">{t("learn")}</a>
               </Button>
+            </div>
+            <div className="mt-4">
+              <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
+                <Link to="/alerts">
+                  <Globe2 className="mr-2 h-5 w-5" /> 🌍 {t("alertsCta")}
+                </Link>
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">{t("alertsCtaDesc")}</p>
             </div>
           </div>
 
