@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Activity } from "lucide-react";
+import { Activity, LogOut } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 
 export function SiteHeader() {
   const { lang, setLang, t } = useI18n();
+  const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -35,6 +37,15 @@ export function SiteHeader() {
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link to="/report">{t("cta")}</Link>
           </Button>
+          {user ? (
+            <Button size="sm" variant="ghost" onClick={signOut} title={t("signOut")}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline">
+              <Link to="/auth">{t("signIn")}</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>
