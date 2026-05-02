@@ -73,14 +73,14 @@ function AlertsPage() {
   }, [mode, villageId, lat, lng, appliedCoords]);
 
   const simulateGps = () => {
-    // Pick a random known zone to simulate GPS
-    const z = ZONES[Math.floor(Math.random() * ZONES.length)];
-    const jitter = () => (Math.random() - 0.5) * 0.4;
-    const newLat = +(z.lat + jitter()).toFixed(2);
-    const newLng = +(z.lng + jitter()).toFixed(2);
-    setLat(String(newLat));
-    setLng(String(newLng));
-    setAppliedCoords({ lat: newLat, lng: newLng });
+    // Deterministic: use the currently entered coordinates as the "GPS" reading.
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    const safeLat = Number.isFinite(parsedLat) ? +parsedLat.toFixed(2) : 0;
+    const safeLng = Number.isFinite(parsedLng) ? +parsedLng.toFixed(2) : 0;
+    setLat(String(safeLat));
+    setLng(String(safeLng));
+    setAppliedCoords({ lat: safeLat, lng: safeLng });
     setMode("coords");
   };
 
