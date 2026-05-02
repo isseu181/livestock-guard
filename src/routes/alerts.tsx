@@ -1,10 +1,14 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
-import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb } from "lucide-react";
+import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb, MapPin, Locate, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/alerts")({
   head: () => ({
@@ -19,11 +23,68 @@ export const Route = createFileRoute("/alerts")({
 });
 
 type Severity = "urgent" | "info";
+type AlertId = "virus" | "heat" | "rain";
+
+type Zone = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  alerts: AlertId[];
+};
+
+const ZONES: Zone[] = [
+  { id: "kayes", name: "Kayes", lat: 14.45, lng: -11.44, alerts: ["heat", "virus"] },
+  { id: "sikasso", name: "Sikasso", lat: 11.32, lng: -5.68, alerts: ["rain"] },
+  { id: "mopti", name: "Mopti", lat: 14.49, lng: -4.20, alerts: ["heat", "rain", "virus"] },
+  { id: "segou", name: "Ségou", lat: 13.45, lng: -6.27, alerts: [] },
+  { id: "tombouctou", name: "Tombouctou", lat: 16.77, lng: -3.00, alerts: ["heat"] },
+];
+
+function alertsForCoords(lat: number, lng: number): AlertId[] {
+  // Closest known zone wins (simulation)
+  let best = ZONES[0];
+  let bestDist = Infinity;
+  for (const z of ZONES) {
+    const d = (z.lat - lat) ** 2 + (z.lng - lng) ** 2;
+    if (d < bestDist) {
+      bestDist = d;
+      best = z;
+    }
+  }
+  return best.alerts;
+}
 
 function AlertsPage() {
   const { t } = useI18n();
+  const [mode, setMode] = useState<"village" | "coords">("village");
+  const [villageId, setVillageId] = useState<string>("mopti");
+  const [lat, setLat] = useState<string>("14.49");
+  const [lng, setLng] = useState<string>("-4.20");
+  const [appliedCoords, setAppliedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  const alerts: {
+  const activeZone = useMemo(() => {
+    if (mode === "village") {
+      return ZONES.find((z) => z.id === villageId) ?? ZONES[0];
+    }
+    const c = appliedCoords ?? { lat: parseFloat(lat) || 0, lng: parseFloat(lng) || 0 };
+    const ids = alertsForCoords(c.lat, c.lng);
+    return { id: "custom", name: `${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`, lat: c.lat, lng: c.lng, alerts: ids };
+  }, [mode, villageId, lat, lng, appliedCoords]);
+
+  const simulateGps = () => {
+    // Pick a random known zone to simulate GPS
+    const z = ZONES[Math.floor(Math.random() * ZONES.length)];
+    const jitter = () => (Math.random() - 0.5) * 0.4;
+    const newLat = +(z.lat + jitter()).toFixed(2);
+    const newLng = +(z.lng + jitter()).toFixed(2);
+    setLat(String(newLat));
+    setLng(String(newLng));
+    setAppliedCoords({ lat: newLat, lng: newLng });
+    setMode("coords");
+  };
+
+  const allAlerts: {
     id: string;
     Icon: typeof Bug;
     title: string;
@@ -61,6 +122,7 @@ function AlertsPage() {
     },
   ];
 
+  const alerts = allAlerts.filter((a) => activeZone.alerts.includes(a.id as AlertId));
   const urgentCount = alerts.filter((a) => a.severity === "urgent").length;
   const isCritical = urgentCount >= 2;
 
@@ -91,8 +153,80 @@ function AlertsPage() {
           <p className="mt-3 text-base text-muted-foreground">{t("alertsLead")}</p>
         </div>
 
+        {/* Zone selector */}
+        <Card className="mt-8 border-border/60 p-5 sm:p-6">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold text-foreground">{t("selectZone")}</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{t("zoneHelp")}</p>
+
+          <div className="mt-4 inline-flex rounded-full border border-border bg-secondary p-0.5 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setMode("village")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${mode === "village" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {t("village")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("coords")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${mode === "coords" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {t("coordinates")}
+            </button>
+          </div>
+
+          {mode === "village" ? (
+            <div className="mt-4 max-w-sm">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("village")}</Label>
+              <Select value={villageId} onValueChange={setVillageId}>
+                <SelectTrigger className="mt-1 h-12 text-base">
+                  <SelectValue placeholder={t("selectVillage")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ZONES.map((z) => (
+                    <SelectItem key={z.id} value={z.id}>
+                      {z.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("latitude")}</Label>
+                <Input className="mt-1 h-12 text-base" type="number" step="0.01" value={lat} onChange={(e) => setLat(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("longitude")}</Label>
+                <Input className="mt-1 h-12 text-base" type="number" step="0.01" value={lng} onChange={(e) => setLng(e.target.value)} />
+              </div>
+              <Button
+                size="lg"
+                onClick={() => setAppliedCoords({ lat: parseFloat(lat) || 0, lng: parseFloat(lng) || 0 })}
+              >
+                {t("apply")}
+              </Button>
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <Button type="button" variant="outline" size="lg" onClick={simulateGps}>
+              <Locate className="mr-2 h-4 w-4" /> {t("useGps")}
+            </Button>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t("activeZone")} :</span>
+              <Badge variant="secondary" className="text-sm">📍 {activeZone.name}</Badge>
+              <Badge variant="outline">{alerts.length} {t("alertsCount")}</Badge>
+            </div>
+          </div>
+        </Card>
+
         {isCritical && (
-          <Card className="mt-8 border-destructive/40 bg-destructive/5 p-5">
+          <Card className="mt-6 border-destructive/40 bg-destructive/5 p-5">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-destructive text-destructive-foreground shadow-[var(--shadow-soft)]">
                 <AlertTriangle className="h-6 w-6" />
@@ -105,7 +239,17 @@ function AlertsPage() {
           </Card>
         )}
 
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
+        {alerts.length === 0 ? (
+          <Card className="mt-6 border-border/60 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <p className="text-base text-foreground">{t("noAlerts")}</p>
+            </div>
+          </Card>
+        ) : (
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
           {alerts.map(({ id, Icon, title, message, advice, severity, tone }) => (
             <Card
               key={id}
@@ -134,6 +278,7 @@ function AlertsPage() {
             </Card>
           ))}
         </div>
+        )}
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Button asChild size="lg">
