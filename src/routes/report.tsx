@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n, SYMPTOMS, evaluateSeverity } from "@/lib/i18n";
 import { AlertTriangle, ShieldCheck, Activity, MapPin, Phone, ArrowLeft, Stethoscope, CheckCircle2, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/report")({
   component: ReportPage,
@@ -26,15 +28,33 @@ function ReportPage() {
   const [notes, setNotes] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<null | { severity: "critical" | "moderate" | "low" }>(null);
+  const [saving, setSaving] = useState(false);
 
   const toggle = (key: string) => {
     setSelected((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selected.length) return;
-    setResult({ severity: evaluateSeverity(selected) });
+    if (!selected.length || !user) return;
+    const severity = evaluateSeverity(selected);
+    setSaving(true);
+    const { error } = await supabase.from("reports").insert({
+      farmer_id: user.id,
+      animal_type: animal,
+      animal_age: age || null,
+      village: location || null,
+      symptoms: selected,
+      notes: notes || null,
+      severity,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("reportSaved"));
+    setResult({ severity });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -158,7 +178,7 @@ function ReportPage() {
               <Textarea id="notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("notesPh")} />
             </div>
 
-            <Button type="submit" size="lg" className="w-full" disabled={!selected.length || !animal || !location}>
+            <Button type="submit" size="lg" className="w-full" disabled={!selected.length || !animal || !location || saving}>
               <Activity className="mr-2 h-4 w-4" /> {t("analyze")}
             </Button>
           </form>
