@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
-import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb, MapPin, Locate, ShieldCheck } from "lucide-react";
+import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb, MapPin, Locate, ShieldCheck, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/alerts")({
   head: () => ({
@@ -62,6 +63,9 @@ function AlertsPage() {
   const [lat, setLat] = useState<string>("14.49");
   const [lng, setLng] = useState<string>("-4.20");
   const [appliedCoords, setAppliedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [weather, setWeather] = useState<{ tmax: number; rain: number } | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   const activeZone = useMemo(() => {
     if (mode === "village") {
@@ -72,17 +76,71 @@ function AlertsPage() {
     return { id: "custom", name: `${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`, lat: c.lat, lng: c.lng, alerts: ids };
   }, [mode, villageId, lat, lng, appliedCoords]);
 
-  const simulateGps = () => {
-    // Deterministic: use the currently entered coordinates as the "GPS" reading.
-    const parsedLat = parseFloat(lat);
-    const parsedLng = parseFloat(lng);
-    const safeLat = Number.isFinite(parsedLat) ? +parsedLat.toFixed(2) : 0;
-    const safeLng = Number.isFinite(parsedLng) ? +parsedLng.toFixed(2) : 0;
-    setLat(String(safeLat));
-    setLng(String(safeLng));
-    setAppliedCoords({ lat: safeLat, lng: safeLng });
-    setMode("coords");
+  const useRealGps = () => {
+    if (!navigator.geolocation) {
+      toast.error(t("locationError"));
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const la = +pos.coords.latitude.toFixed(2);
+        const ln = +pos.coords.longitude.toFixed(2);
+        setLat(String(la));
+        setLng(String(ln));
+        setAppliedCoords({ lat: la, lng: ln });
+        setMode("coords");
+        setLocating(false);
+        toast.success(t("locationDetected"));
+      },
+      () => {
+        setLocating(false);
+        toast.error(t("locationError"));
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
+
+  // Fetch real weather (Open-Meteo) for the active zone coordinates
+  useEffect(() => {
+    let aborted = false;
+    const { lat: la, lng: ln } = activeZone;
+    setWeatherLoading(true);
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${ln}&daily=temperature_2m_max,precipitation_sum&forecast_days=1&timezone=auto`
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (aborted) return;
+        const tmax = d?.daily?.temperature_2m_max?.[0];
+        const rain = d?.daily?.precipitation_sum?.[0];
+        if (typeof tmax === "number" && typeof rain === "number") {
+          setWeather({ tmax, rain });
+        } else {
+          setWeather(null);
+        }
+      })
+      .catch(() => !aborted && setWeather(null))
+      .finally(() => !aborted && setWeatherLoading(false));
+    return () => {
+      aborted = true;
+    };
+  }, [activeZone.lat, activeZone.lng]);
+
+  // Dynamic alert ids: virus stays from zone data, heat/rain from real weather
+  const dynamicAlertIds: AlertId[] = useMemo(() => {
+    const ids: AlertId[] = [];
+    if (activeZone.alerts.includes("virus")) ids.push("virus");
+    if (weather) {
+      if (weather.tmax >= 32) ids.push("heat");
+      if (weather.rain >= 10) ids.push("rain");
+    } else {
+      // fallback to static while weather unavailable
+      if (activeZone.alerts.includes("heat")) ids.push("heat");
+      if (activeZone.alerts.includes("rain")) ids.push("rain");
+    }
+    return ids;
+  }, [activeZone, weather]);
 
   const allAlerts: {
     id: string;
@@ -122,7 +180,7 @@ function AlertsPage() {
     },
   ];
 
-  const alerts = allAlerts.filter((a) => activeZone.alerts.includes(a.id as AlertId));
+  const alerts = allAlerts.filter((a) => dynamicAlertIds.includes(a.id as AlertId));
   const urgentCount = alerts.filter((a) => a.severity === "urgent").length;
   const isCritical = urgentCount >= 2;
 
@@ -214,14 +272,28 @@ function AlertsPage() {
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <Button type="button" variant="outline" size="lg" onClick={simulateGps}>
-              <Locate className="mr-2 h-4 w-4" /> {t("useGps")}
+            <Button type="button" variant="outline" size="lg" onClick={useRealGps} disabled={locating}>
+              {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Locate className="mr-2 h-4 w-4" />}
+              {locating ? t("locating") : t("useGps")}
             </Button>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t("activeZone")} :</span>
               <Badge variant="secondary" className="text-sm">📍 {activeZone.name}</Badge>
               <Badge variant="outline">{alerts.length} {t("alertsCount")}</Badge>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {weatherLoading ? (
+              <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Open-Meteo…</span>
+            ) : weather ? (
+              <>
+                <Badge variant="outline">🌡 {t("temperature")}: {weather.tmax.toFixed(1)}°C</Badge>
+                <Badge variant="outline">💧 {t("rainfall")}: {weather.rain.toFixed(1)} mm</Badge>
+              </>
+            ) : (
+              <span>{t("weatherUnavailable")}</span>
+            )}
           </div>
         </Card>
 
