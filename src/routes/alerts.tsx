@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
-import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb, MapPin, Locate, ShieldCheck, Loader2 } from "lucide-react";
+import { Bug, Thermometer, CloudRain, AlertTriangle, ArrowLeft, Lightbulb, MapPin, Locate, ShieldCheck, Loader2, Stethoscope, Phone, Navigation } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/alerts")({
   head: () => ({
@@ -68,6 +69,26 @@ function alertsForCoords(lat: number, lng: number): AlertId[] {
   return best.alerts;
 }
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+type Vet = {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  zone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 function AlertsPage() {
   const { t } = useI18n();
   const [mode, setMode] = useState<"village" | "coords">("village");
@@ -78,6 +99,14 @@ function AlertsPage() {
   const [locating, setLocating] = useState(false);
   const [weather, setWeather] = useState<{ tmax: number; rain: number } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [vets, setVets] = useState<Vet[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("vets")
+      .select("id, full_name, phone, zone, latitude, longitude")
+      .then(({ data }) => setVets((data ?? []) as Vet[]));
+  }, []);
 
   const activeZone = useMemo(() => {
     if (mode === "village") {
@@ -195,6 +224,20 @@ function AlertsPage() {
   const alerts = allAlerts.filter((a) => dynamicAlertIds.includes(a.id as AlertId));
   const urgentCount = alerts.filter((a) => a.severity === "urgent").length;
   const isCritical = urgentCount >= 2;
+
+  const triggerLabel = (id: string) => {
+    if (id === "heat") return weather ? `${t("triggerHeat")} (${weather.tmax.toFixed(1)}°C)` : t("triggerHeat");
+    if (id === "rain") return weather ? `${t("triggerRain")} (${weather.rain.toFixed(1)} mm)` : t("triggerRain");
+    return t("triggerVirus");
+  };
+
+  const sortedVets = useMemo(() => {
+    return vets
+      .filter((v) => v.latitude != null && v.longitude != null)
+      .map((v) => ({ ...v, dist: haversineKm(activeZone.lat, activeZone.lng, v.latitude!, v.longitude!) }))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 5);
+  }, [vets, activeZone.lat, activeZone.lng]);
 
   const toneClass = (tone: "destructive" | "warning" | "info") => {
     if (tone === "destructive") return "bg-destructive/10 text-destructive";
@@ -351,6 +394,9 @@ function AlertsPage() {
                     )}
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{message}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">{t("triggeredBy")} :</span> {triggerLabel(id)}
+                  </p>
                   <div className="mt-4 rounded-lg border border-border/60 bg-secondary/40 p-3">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
                       <Lightbulb className="h-3.5 w-3.5 text-primary" /> {t("advice")}
@@ -363,6 +409,43 @@ function AlertsPage() {
           ))}
         </div>
         )}
+
+        {/* Nearby vets */}
+        <div className="mt-10">
+          <div className="flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold text-foreground">{t("nearbyVets")}</h2>
+          </div>
+          {sortedVets.length === 0 ? (
+            <Card className="mt-4 p-6 text-sm text-muted-foreground">{t("noVets")}</Card>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {sortedVets.map((v) => (
+                <Card key={v.id} className="flex items-center justify-between gap-3 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-primary)] text-primary-foreground">
+                      <Stethoscope className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{v.full_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        <Navigation className="mr-1 inline h-3 w-3" />
+                        {v.zone ?? "—"} · {v.dist.toFixed(1)} {t("km")}
+                      </p>
+                    </div>
+                  </div>
+                  {v.phone && (
+                    <Button asChild size="sm" variant="outline">
+                      <a href={`tel:${v.phone.replace(/\s/g, "")}`}>
+                        <Phone className="mr-2 h-4 w-4" />{t("callVet")}
+                      </a>
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Button asChild size="lg">
