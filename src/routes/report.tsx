@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useI18n, SYMPTOMS, evaluateSeverity } from "@/lib/i18n";
-import { AlertTriangle, ShieldCheck, Activity, MapPin, Phone, ArrowLeft, Stethoscope, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ShieldCheck, Activity, MapPin, Phone, ArrowLeft, Stethoscope, CheckCircle2, Lock } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/report")({
   component: ReportPage,
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/report")({
 
 function ReportPage() {
   const { t } = useI18n();
+  const { user, loading } = useAuth();
   const [animal, setAnimal] = useState("");
   const [age, setAge] = useState("");
   const [location, setLocation] = useState("");
@@ -44,6 +46,29 @@ function ReportPage() {
     setNotes("");
     setSelected([]);
   };
+
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main className="container mx-auto max-w-md px-4 py-16">
+          <Card className="p-8 text-center shadow-[var(--shadow-soft)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--shadow-soft)]">
+              <Lock className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <h1 className="mt-5 text-2xl font-bold text-foreground">{t("loginRequired")}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t("loginRequiredDesc")}</p>
+            <Button asChild size="lg" className="mt-6 w-full">
+              <Link to="/auth">{t("signInToContinue")}</Link>
+            </Button>
+            <Link to="/" className="mt-4 inline-block text-xs text-muted-foreground hover:text-foreground">
+              {t("backHome")}
+            </Link>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (result) {
     return (
