@@ -35,11 +35,23 @@ type Zone = {
 };
 
 const ZONES: Zone[] = [
-  { id: "kayes", name: "Kayes", lat: 14.45, lng: -11.44, alerts: ["heat", "virus"] },
-  { id: "sikasso", name: "Sikasso", lat: 11.32, lng: -5.68, alerts: ["rain"] },
-  { id: "mopti", name: "Mopti", lat: 14.49, lng: -4.20, alerts: ["heat", "rain", "virus"] },
-  { id: "segou", name: "Ségou", lat: 13.45, lng: -6.27, alerts: [] },
-  { id: "tombouctou", name: "Tombouctou", lat: 16.77, lng: -3.00, alerts: ["heat"] },
+  { id: "bamako", name: "Bamako", lat: 12.6392, lng: -8.0029, alerts: ["heat"] },
+  { id: "kayes", name: "Kayes", lat: 14.4469, lng: -11.4450, alerts: ["heat", "virus"] },
+  { id: "kita", name: "Kita", lat: 13.0411, lng: -9.4894, alerts: [] },
+  { id: "koulikoro", name: "Koulikoro", lat: 12.8628, lng: -7.5597, alerts: ["heat"] },
+  { id: "sikasso", name: "Sikasso", lat: 11.3175, lng: -5.6664, alerts: ["rain"] },
+  { id: "koutiala", name: "Koutiala", lat: 12.3917, lng: -5.4642, alerts: ["rain"] },
+  { id: "bougouni", name: "Bougouni", lat: 11.4167, lng: -7.4833, alerts: ["rain"] },
+  { id: "segou", name: "Ségou", lat: 13.4317, lng: -6.2157, alerts: [] },
+  { id: "san", name: "San", lat: 13.3036, lng: -4.8961, alerts: [] },
+  { id: "mopti", name: "Mopti", lat: 14.4843, lng: -4.1827, alerts: ["heat", "rain", "virus"] },
+  { id: "djenne", name: "Djenné", lat: 13.9056, lng: -4.5550, alerts: ["rain"] },
+  { id: "douentza", name: "Douentza", lat: 15.0028, lng: -2.9486, alerts: ["heat"] },
+  { id: "tombouctou", name: "Tombouctou", lat: 16.7666, lng: -3.0026, alerts: ["heat"] },
+  { id: "gao", name: "Gao", lat: 16.2719, lng: -0.0444, alerts: ["heat"] },
+  { id: "kidal", name: "Kidal", lat: 18.4411, lng: 1.4078, alerts: ["heat"] },
+  { id: "menaka", name: "Ménaka", lat: 15.9167, lng: 2.4000, alerts: ["heat"] },
+  { id: "taoudenni", name: "Taoudenni", lat: 22.6783, lng: -3.9831, alerts: ["heat"] },
 ];
 
 function alertsForCoords(lat: number, lng: number): AlertId[] {
